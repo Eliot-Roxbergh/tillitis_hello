@@ -1,10 +1,17 @@
 # Tillitis hello worlds
 
+The TKey is a fully open source hardware token, licensed under copyleft.
 
-## Prerequisites
+## Running an app on TKey
+
+It is quick to build an app and transfer it to TKey.
+
+Run the following commands to try the app in this repo, or other example apps in <https://github.com/tillitis/tillitis-key1-apps>.
+
+### Prerequisites
 
 
-### General dependencies
+#### General dependencies
 
 ```bash
 sudo apt install -y \
@@ -26,7 +33,7 @@ sudo apt install -y \
 #   sudo update-alternatives --install /usr/bin/llvm-objcopy  llvm-objcopy /usr/bin/llvm-objcopy-15 200
 ```
 
-### Tillitis
+#### Tillitis
 
 ```bash
 cd ..
@@ -45,7 +52,22 @@ make all
 cd ..
 ```
 
-## Start app
+
+```bash
+# Give active user permission to interact with the device
+
+#device is usually here and owned by group dialout
+ls -l /dev/ttyACM0
+
+#add user to dialout
+sudo usermod -a -G dialout $USER
+
+#relogin or run this command
+newgrp dialout
+```
+
+
+### Start app
 
 Start application on tkey using tkey-runapp
 
