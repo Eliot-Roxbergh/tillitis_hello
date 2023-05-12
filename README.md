@@ -25,7 +25,7 @@ sudo apt install -y \
                  ninja-build libglib2.0-dev libpixman-1-dev \
                  golang clang-format
 
-# NOTE, this might be necessary if clang-15 is not default (e.g. Ubuntu 22.04)
+# NOTE, clang >= 15 required, might need to be set manually if not default (e.g. on Ubuntu 22.04)
 #   sudo apt install -y clang-15 lldb-15 lld-15
 #   sudo update-alternatives --install /usr/bin/clang      clang       /usr/bin/clang-15  200
 #   sudo update-alternatives --install /usr/bin/ld.lld     ld.lld      /usr/bin/ld.lld-15  200
@@ -36,8 +36,6 @@ sudo apt install -y \
 #### Tillitis
 
 ```bash
-cd ..
-
 # build runapp (for transfering our app to tkey)
 git clone https://github.com/tillitis/tillitis-key1-apps
 cd tillitis-key1-apps
@@ -54,7 +52,8 @@ cd ..
 
 
 ```bash
-# Give active user permission to interact with the device
+# Give active user permission to interact with the device,
+#   for instance add user to dialout group
 
 #device is usually here and owned by group dialout
 ls -l /dev/ttyACM0
@@ -69,7 +68,11 @@ newgrp dialout
 
 ### Start app
 
-Start application on tkey using tkey-runapp
+
+Start application on tkey using tkey-runapp. Simply run the tkey-runapp binary and provide the app you'd like to transfer.
+
+The example app coin_race.c simply uses the internal TRNG to "flip a coin", either red or blue wins the toss.
+The current leader is shown using the LED, white signifies an equal position.
 
 
 ```

@@ -14,21 +14,6 @@ static volatile uint32_t *led = (volatile uint32_t *)TK1_MMIO_TK1_LED;
 static volatile uint32_t *trng_status  = (volatile uint32_t *)TK1_MMIO_TRNG_STATUS;
 static volatile uint32_t *trng_entropy = (volatile uint32_t *)TK1_MMIO_TRNG_ENTROPY;
 
-void sleep(uint32_t n)
-{
-	for (volatile int i = 0; i < n; i++);
-}
-
-void toggle_rgb(void)
-{
-	*led = LED_RED;
-	sleep(SLEEPTIME);
-	*led = LED_GREEN;
-	sleep(SLEEPTIME);
-	*led = LED_BLUE;
-	sleep(SLEEPTIME);
-}
-
 enum player {
     red = LED_RED,
     blue = LED_BLUE,
@@ -37,30 +22,48 @@ enum player {
     black = LED_BLACK,
 };
 
-/* perform coin toss */
+void sleep(uint32_t n)
+{
+    for (volatile int i = 0; i < n; i++);
+}
+
+void toggle_rgb(void)
+{
+    *led = LED_RED;
+    sleep(SLEEPTIME);
+    *led = LED_GREEN;
+    sleep(SLEEPTIME);
+    *led = LED_BLUE;
+    sleep(SLEEPTIME);
+}
+
+/*
+ * Perform coin toss
+ *  Who will win today?
+ */
 enum player get_winner(void)
 {
-    uint32_t my_random = 0;
+    uint32_t rand = 0;
 
     sleep(SLEEPTIME*4);
 
-    /* Who will win today? */
+    /* wait for entropy */
     while(*trng_status == 0) {
-        /* this shouldn't happen really */
-	    *led = LED_GREEN;
-	    sleep(SLEEPTIME*10);
+        /* (this shouldn't happen really) */
+        *led = LED_GREEN;
+        sleep(SLEEPTIME*10);
     }
 
     //TODO this should use Hash_DRBG instead of raw TRNG?
-    my_random = *trng_entropy;
-	sleep(SLEEPTIME);
+    rand = *trng_entropy;
+    sleep(SLEEPTIME);
 
     /*
      * Are you readyyy?
-     * time for coin flip
+     *  Time for coin flip!
      */
-    //TODO this is a bit stupid
-    if (my_random % 2 == 0) {
+    //TODO this is a bit stupid?
+    if (rand % 2 == 0) {
         return red;
     } else {
         return blue;
@@ -72,17 +75,17 @@ int main(void)
     /*
      *  Welcome to coin race!
      */
+    enum player winner;
+    int32_t score_red=0, score_blue = 0;
 
     *led = white;
     sleep(SLEEPTIME);
     toggle_rgb();
     toggle_rgb();
 
-    int32_t score_red=0, score_blue = 0;
-
-    /* Start race, current leader is shown on LED */
+    /* Start race, current leader is shown on LED (white for equal) */
     while (1) {
-        enum player winner = get_winner();
+        winner = get_winner();
         if (winner == red) {
             score_red++;
         } else {
@@ -94,7 +97,7 @@ int main(void)
         } else if (score_blue > score_red) {
             *led = blue;
         } else {
-            /* dead equal */
+            /* equal */
             *led = white;
         }
 
@@ -103,6 +106,6 @@ int main(void)
             while (1);
         }
 
-	    sleep(SLEEPTIME*10);
+        sleep(SLEEPTIME*10);
     }
 }
