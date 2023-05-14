@@ -32,6 +32,7 @@ sudo systemctl disable ssh
 ```
 ./tkey-ssh-agent  --show-pubkey
 # ----> add to ~/.ssh/authorized_keys
+#   example: ssh-ed25519 AAAA5Ns36SKds24ovMDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4Asdv/U My-Tillitis-TKey
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 sudo systemctl start ssh
@@ -57,6 +58,9 @@ SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
 Once the ssh-agent is working, we can use it for other things that just regular ssh.
 Such as use it to authenticate to PAM.
 
+- Make sure ssh-auth socket is up (started in last section) and that the public key is in the authorized_keys file \
+In this example, put the public key in /etc/ssh/sudo_authorized_keys.
+
 - Install PAM module ssh-agent-ath
 
 ```
@@ -66,8 +70,8 @@ sudo apt install libpam-ssh-agent-auth
 - Add the alternative authentication method (ssh-agent-auth) for sudo by adding the PAM module as a step in its PAM config (i.e. /etc/pam.d/sudo). \
 As far as I know, the new configuration is applied as soon as the file is saved, try with 'sudo'. \
 By setting the module as 'sufficient' the user can either use the TKey or password (or whatever they used before). \
-On the other hand, if we were to set the module as 'required' the TKey would be used in addition to password, i.e. 2FA (NOTE: careful not to lock yourself out of the system).
-Similarily, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
+On the other hand, if we were to set the module as 'required' the TKey would be used in addition to password, i.e. 2FA (NOTE: careful not to lock yourself out of the system). \
+Similarily, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/.
 
 ```
 #/etc/pam.d/sudo
@@ -101,7 +105,7 @@ This was just a proof-of-concept, you might also need to do the following:
 - PAM config: Use pam-ssh-agent-auth for the service you'd like, such as /etc/pam.d/login for system login. \
 I'd assume that you'd either (e.g.) put the module line above the "@include common-password" line in /etc/pam.d/login, \
 or use pam-auth-update(8) to apply globally to all PAM supported services. \
-You may also want to limit this authentication method to certain services or certain users. \
+You may also want to limit this authentication method to certain services or certain users.
 
 The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the
 SSH_AUTH_SOCK is not set or inherited properly.
