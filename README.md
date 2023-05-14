@@ -2,6 +2,28 @@
 
 The TKey is a fully open source hardware token, licensed under copyleft.
 
+Its FPGA code and firmware is locked down, and user applications are only stored in RAM: cleared when disconnected.
+Therefore, it has no state and user applications can only access the unique device identifier.
+
+This identifier can be used to verify that the device or application has not been modified since last run.
+Additionally, it can be used for key derivation. For instance, an ssh-agent is provided by Tillitis in the apps repo [1].
+
+
+The TKey has several use cases, and applications are in active development.
+It is also easy to write apps for the TKey using regular C (Tillitis provides a limited standard lib).
+
+- It can provide good random data.
+Sign..
+2FA requiring click..
+....
+
+For instance, it is quite simple to use the ssh-agent app in TKey to create a 2FA step in PAM authentication.
+That is, use the TKey for Linux login (for instance).
+I provide an example of this in here: <tkey_authentication.md>.
+
+[1] - <https://github.com/tillitis/tillitis-key1-apps>.
+
+
 ## Running an app on TKey
 
 It is quick to build an app and transfer it to TKey.
