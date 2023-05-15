@@ -19,7 +19,7 @@ Sign..
 
 For instance, it is quite simple to use the ssh-agent app in TKey to create a 2FA step in PAM authentication.
 That is, use the TKey for Linux login (for instance).
-I provide an example of this in here: <tkey_authentication.md>.
+I provide an example of this in here: [tkey_authentication](tkey_authentication.md)
 
 [1] - <https://github.com/tillitis/tillitis-key1-apps>.
 
@@ -58,17 +58,16 @@ sudo apt install -y \
 #### Tillitis
 
 ```bash
+# build libraries (used in linking, see Makefile)
+git clone https://github.com/tillitis/tkey-libs
+cd tkey-libs
+make all
+cd ..
+
 # build runapp (for transfering our app to tkey)
 git clone https://github.com/tillitis/tillitis-key1-apps
 cd tillitis-key1-apps
 make tkey-runapp
-cd ..
-
-
-# build libraries (using in linking, see Makefile)
-git clone https://github.com/tillitis/tkey-libs
-cd tkey-libs
-make all
 cd ..
 ```
 
