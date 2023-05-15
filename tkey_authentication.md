@@ -100,7 +100,7 @@ SSH_AUTH_SOCK=~/.ssh/agent.sock sudo echo
 
 This was just a proof-of-concept, you might also need to do the following:
 
-- Create a ssh-agent socket at system start. (TODO!)
+- Create a ssh-agent socket at system start: Run `make install` in the tkey-apps repo, which creates a new systemd service (see their tkey-ssh-agent.service.tmpl)
 
 - PAM config: Use pam-ssh-agent-auth for the service you'd like, such as /etc/pam.d/login for system login. \
 I'd assume that you'd either (e.g.) put the module line above the "@include common-password" line in /etc/pam.d/login, \
@@ -110,3 +110,15 @@ You may also want to limit this authentication method to certain services or cer
 The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the
 SSH_AUTH_SOCK is not set or inherited properly.
 
+
+SSH_AUTH_SOCK needs to be set, however this may depend on your system. For instance this can be done in PAM with /etc/security/pam_env.conf, or /etc/environment, or by loading a file pam_env [1] ([2]). It can also be done with systemd's environment.d [3]. Or simply add to /etc/profile.
+For an overview see [4].
+(TODO! not tested).
+
+[1] - https://linux.die.net/man/8/pam_env \
+note: pam has a special syntax for env config, example add the following to .conf file: \
+`SSH_AUTH_SOCK DEFAULT=/home/user/.ssh/agent.sock`\
+[2] - Optionally, create your own config file and add to /etc/pam.d/sudo: \
+`session required pam_env.so readenv=1 envfile=X.conf user_readenv=0` \
+[3] - https://www.freedesktop.org/software/systemd/man/environment.d.html \
+[4] - https://wiki.archlinux.org/title/Environment_variables
