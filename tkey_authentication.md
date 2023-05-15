@@ -1,12 +1,13 @@
 # Use TKey for PAM authentication (with tkey ssh-agent)
 
-There's an ssh-agent app available in the [tillitis-key1-apps](https://github.com/tillitis/tillitis-key1-apps) repo.
+There is an ssh-agent app available in the [tillitis-key1-apps](https://github.com/tillitis/tillitis-key1-apps) repo.
 This enables us to use the TKey for key-based authentication over ssh.
-Moreover, by using the PAM module "[ssh-agent-auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it's possible to login to the Linux system using the TKey ssh-agent.
+Moreover, by using the PAM module "[ssh-agent-auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it is possible to login to the Linux system using the TKey ssh-agent.
 For instance, replacing passwords or as a 2FA token in conjunction with a password (or other methods).
 
+In this document we will: \
 First, we setup the TKey to be used for SSH connections (signing is done on TKey with its key). \
-Second, we use the same mechanism to from PAM use the TKey for authentication: replacing the need to enter a password for the `sudo` command.
+Second, we use the same mechanism to, from PAM, use the TKey for authentication: replacing the need to enter a password for the `sudo` command.
 
 ## 1. Use ssh TKey signing via ssh-agent
 
@@ -120,12 +121,12 @@ sudo echo SUCCESS!
 PAM config: it should be possible to use pam-ssh-agent-auth for any service you'd like, such as /etc/pam.d/sudo or /etc/pam.d/login. \
 I can't say if it's a good/bad idea however.
 
-**If issues arise, check log: e.g. `sudo journalctl -f` or `/var/log/auth.log` and the status of tkey with `systemctl status tkey-ssh-agent`** \
+**If issues arise, check log: e.g. `sudo journalctl -f` or `/var/log/auth.log` and the status of tkey with `systemctl status tkey-ssh-agent`.**
 The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the SSH_AUTH_SOCK not set or inherited properly.
 
 [1] - I think that you'd should either put the module line above the "@include common-auth" line in /etc/pam.d/login, \
 or create a profile for pam-auth-update(8) to apply globally to all PAM supported services. \
-You may also want to limit this authentication method to certain services or certain users.
+You may also want to limit this authentication method to certain services or certain users. \
 [2] - SSH_AUTH_SOCK needs to be set, which can be done in multiple ways depending on your system or who calls it. In addition to simple export in e.g. .profile, this can be done in PAM in /etc/security/pam_env.conf or /etc/environment, or by loading a file with pam_env [2a], ([2b]). It can also be done with systemd's environment.d [2c]. For an overview see [2d]. \
 [2a] - https://linux.die.net/man/8/pam_env \
 note: pam has a special syntax for env config, example add the following to .conf file: \

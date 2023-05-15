@@ -2,18 +2,19 @@
 
 The TKey is a handy open source security token created by the Mullvad spin-off [Tillitis AB](https://tillitis.se/).
 Both its software and hardware (schematics, PCB, and FPGA design) is open source, and available under copyleft licenses.
+The TKey was released in April of 2023 with a price tag of 880 SEK (incl. tax).
 
 The TKey is a small device drawing less than 100mA. It provides a few basic functions in firmware such as Ed25519 signing, key derivation, BLAKE2 hasing, and a good random number generator (TRNG).
 It also has a sensor for user confirmation.
-With these features it is possible to use the TKey for different functions, such as authentication (signing, SSH login, passkey, ..), as a root of trust (sign/encrypt), or as a RNG.
+With these features it is possible to use the TKey for different functionality, such as authentication (signing, SSH login, passkey, ..), as a root of trust (sign/encrypt), or as a RNG.
 
-The firmware is locked down and user applications need to be loaded onto the TKey each time as it keeps no user-state between power cycles.
+The firmware is locked down and user applications need to be loaded onto the TKey each boot, as it keeps no user-state between power cycles.
 However, it has an internal unique device identifier which can be used to derive keys persistent across boots, in addition to verify that the device and application have not been modified since last boot.
+See <https://dev.tillitis.se> for more info.
 
 
-
-Applications are in active development, but it is also easy to write apps for the TKey using regular C (Tillitis provides a limited standard lib).
-I wrote a quick "hello world"-example [coin_race.c](coin_race.c), build instructions below.
+Applications are in active development, but it is also possible to write apps for the TKey using regular C (Tillitis provides a limited standard lib).
+I wrote a quick "hello world"-like example [coin_race.c](coin_race.c), build instructions below.
 
 Moreover, an idea I got, is to use the ssh-agent app in TKey to create a 2FA step in PAM authentication.
 That is, to use the TKey for Linux login (for instance).
@@ -24,7 +25,7 @@ I provide examples of this in here, [tkey_authentication](tkey_authentication.md
 
 ## Running an app on TKey
 
-It is quick to build an app and transfer it to TKey.
+It is quick to build an app and transfer it to the TKey.
 
 Run the following commands to try the app in this repo, or other example apps in <https://github.com/tillitis/tillitis-key1-apps>.
 
