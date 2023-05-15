@@ -1,10 +1,12 @@
 # Use TKey for PAM authentication (with tkey ssh-agent)
 
-There's an ssh-agent app available in the tillitis-key1-apps repo.
+There's an ssh-agent app available in the [tillitis-key1-apps](https://github.com/tillitis/tillitis-key1-apps) repo.
 This enables us to use the TKey for key-based authentication over ssh.
-Moreover, by using the PAM module ssh-agent-auth it's possible to login your Linux system using the TKey and this mechanism.
-For instance, replacing passwords or as a 2FA token in conjunction with current authentication.
+Moreover, by using the PAM module "[ssh-agent-auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it's possible to login to the Linux system using the TKey ssh-agent.
+For instance, replacing passwords or as a 2FA token in conjunction with a password (or other methods).
 
+First, we setup the TKey to be used for SSH connections (signing is done on TKey with its key). \
+Second, we use the same mechanism to from PAM use the TKey for authentication: replacing the need to enter a password for the `sudo` command.
 
 ## 1. Use ssh TKey signing via ssh-agent
 
@@ -13,9 +15,9 @@ For instance, replacing passwords or as a 2FA token in conjunction with current 
 
 ```
 cd tillitis-key1-apps
-# ----> DL -> https://go.dev/dl/
-tar xvf go*.tar.gz
-export PATH="$PWD/go/bin/:$PATH"
+# ---> DL golang: https://go.dev/dl/
+#   tar xvf go*.tar.gz
+#   export PATH="$PWD/go/bin/:$PATH"
 make all
 ```
 
@@ -48,7 +50,7 @@ sudo systemctl start ssh
 Run this command and press on TKey to perform sign and finish the login (as prompted by the tkey-ssh-agent program).
 
 ```
-# (add -vvv for verbose client, and if issues check "sudo journalctl -u ssh.service")
+# (add -vvv for verbose client, and if issues check "journalctl -u ssh.service")
 SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
 ```
 
@@ -58,7 +60,7 @@ SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
 Once the ssh-agent is working, we can use it for other things than just regular ssh.
 Such as use it to authenticate to PAM.
 
-- Run TKey ssh agent and enable on boot, which creates a socket at login.
+- Run TKey ssh agent and enable on boot, which creates a socket at login
 
 ```
 cd tillitis-key1-apps
@@ -70,23 +72,23 @@ systemctl --user enable tkey-ssh-agent.service
 #socket should now be here: `/run/user/$UID/tkey-ssh-agent/sock`
 ```
 
-- In this example, put the public key in /etc/ssh/sudo_authorized_keys.
+- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`
 
 ```
 sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
 ```
 
-- Install PAM module ssh-agent-ath
+- Install PAM module ssh-agent-auth
 
 ```
 sudo apt install libpam-ssh-agent-auth
 ```
 
 - Add the alternative authentication method (ssh-agent-auth) for sudo by adding the PAM module as a step in its PAM config (i.e. /etc/pam.d/sudo)[1]. \
-The new configuration is applied as soon as the file is saved, try with 'sudo'. \
-By setting the module as 'sufficient' the user can either use the TKey (and remaining steps are ignored) or password (or whatever they used before). \
-On the other hand, if we were to set the module as 'required' the TKey would be used in addition to password, i.e. 2FA (NOTE: careful not to lock yourself out of the system). \
-Similarily, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/.
+By setting the module as 'sufficient' the user can either use the TKey (and remaining steps are ignored) or the current authentication steps (such as password).
+On the other hand, if we were to set the module as 'required' the TKey would be used in addition to current authentication, i.e. 2FA (note: be careful not to lock yourself out of the system). \
+Similarily, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
+The new configuration is applied as soon as the file is saved, try with 'sudo'.
 
 ```
 #/etc/pam.d/sudo
@@ -101,16 +103,18 @@ auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
 Defaults        env_keep += "SSH_AUTH_SOCK"
 ```
 
-- Now make sure to set $SSH_AUTH_SOCK either globaly (e.g. .bashrc export) or for each call to sudo. This variable must point to the active ssh-agent socket, created by tkey-ssh-agent. \
-Try to authenticate using TKey:
+- Try to authenticate using TKey
 
 ```
-SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock sudo echo
+SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock sudo echo SUCCESS!
 ```
 
-- Set SSH_AUTH_SOCK, e.g. in /etc/profile or ~/.profile [2]
+- Finally, let's permanently set $SSH_AUTH_SOCK. This variable must point to the active ssh-agent socket, created by the tkey-ssh-agent service. \
+One alternative is to set the variable in /etc/profile or ~/.profile, see [2].
 ```
 echo "export SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock" >> ~/.profile
+source ~/.profile
+sudo echo SUCCESS!
 ```
 
 PAM config: it should be possible to use pam-ssh-agent-auth for any service you'd like, such as /etc/pam.d/sudo or /etc/pam.d/login. \
@@ -122,8 +126,7 @@ The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_
 [1] - I think that you'd should either put the module line above the "@include common-auth" line in /etc/pam.d/login, \
 or create a profile for pam-auth-update(8) to apply globally to all PAM supported services. \
 You may also want to limit this authentication method to certain services or certain users.
-[2] - SSH_AUTH_SOCK needs to be set, which can be done in multiple ways depending on your system or who calls it. For instance, this can be done in PAM in /etc/security/pam_env.conf or /etc/environment, or by loading a file with pam_env [2a], ([2b]). It can also be done with systemd's environment.d [2c]. Or simply add to /etc/profile. \
-For an overview see [2d]. \
+[2] - SSH_AUTH_SOCK needs to be set, which can be done in multiple ways depending on your system or who calls it. In addition to simple export in e.g. .profile, this can be done in PAM in /etc/security/pam_env.conf or /etc/environment, or by loading a file with pam_env [2a], ([2b]). It can also be done with systemd's environment.d [2c]. For an overview see [2d]. \
 [2a] - https://linux.die.net/man/8/pam_env \
 note: pam has a special syntax for env config, example add the following to .conf file: \
 `SSH_AUTH_SOCK DEFAULT=/home/user/.ssh/agent.sock`\
