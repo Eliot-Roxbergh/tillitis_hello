@@ -73,7 +73,7 @@ systemctl --user enable tkey-ssh-agent.service
 #socket should now be here: `/run/user/$UID/tkey-ssh-agent/sock`
 ```
 
-- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`
+- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file can be used to gain sudo privileges.
 
 ```
 sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
