@@ -2,7 +2,7 @@
 
 There is an ssh-agent app available in the [tillitis-key1-apps](https://github.com/tillitis/tillitis-key1-apps) repo.
 This enables us to use the TKey for key-based authentication over ssh.
-Moreover, by using the PAM module "[ssh-agent-auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it is possible to login to the Linux system using the TKey ssh-agent.
+Moreover, by using the PAM module "[pam_ssh_agent_auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it is possible to login to the Linux system using the TKey ssh-agent.
 For instance, replacing passwords or as a 2FA token in conjunction with a password (or other methods).
 
 In this document we will: \
@@ -88,7 +88,7 @@ sudo apt install libpam-ssh-agent-auth
 - Add the alternative authentication method (ssh-agent-auth) for sudo by adding the PAM module as a step in its PAM config (i.e. /etc/pam.d/sudo)[1]. \
 By setting the module as 'sufficient' the user can either use the TKey (and remaining steps are ignored) or the current authentication steps (such as password).
 On the other hand, if we were to set the module as 'required' the TKey would be used in addition to current authentication, i.e. 2FA (note: be careful not to lock yourself out of the system). \
-Similarily, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
+Similarly, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
 The new configuration is applied as soon as the file is saved, try with 'sudo'.
 
 ```
