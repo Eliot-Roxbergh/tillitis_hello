@@ -97,7 +97,7 @@ The new configuration is applied as soon as the file is saved, try with 'sudo'.
 auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
 ```
 
-- Contrary to Ubuntu manpage (TODO! why? ??), you need to add the following to /etc/sudoers (The Ubuntu 22.04 system uses sudo 1.9.9, but still requires this step)
+- Contrary to Ubuntu manpage (??), you need to add the following to /etc/sudoers (The Ubuntu 22.04 system uses sudo 1.9.9, but still requires this step)
 
 ```
 #sudo visudo /etc/sudoers

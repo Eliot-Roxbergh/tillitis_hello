@@ -17,9 +17,10 @@ static volatile uint32_t *trng_entropy = (volatile uint32_t *)TK1_MMIO_TRNG_ENTR
 enum player {
     red = LED_RED,
     blue = LED_BLUE,
-    green = LED_GREEN,
-    white = LED_RED,
-    black = LED_BLACK,
+    //green = LED_GREEN,
+    //black = LED_BLACK,
+
+    tie = LED_WHITE,
 };
 
 void sleep(uint32_t n)
@@ -62,7 +63,8 @@ enum player get_winner(void)
      * Are you readyyy?
      *  Time for coin flip!
      */
-    //TODO this is a bit stupid?
+
+    //TODO this is a bit stupid (only checks last bit)
     if (rand % 2 == 0) {
         return red;
     } else {
@@ -78,7 +80,7 @@ int main(void)
     enum player winner;
     int32_t score_red=0, score_blue = 0;
 
-    *led = white;
+    *led = LED_WHITE;
     sleep(SLEEPTIME);
     toggle_rgb();
     toggle_rgb();
@@ -97,8 +99,7 @@ int main(void)
         } else if (score_blue > score_red) {
             *led = blue;
         } else {
-            /* equal */
-            *led = white;
+            *led = tie;
         }
 
         if (score_red == MAX_SCORE || score_blue == MAX_SCORE) {

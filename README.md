@@ -1,10 +1,10 @@
-# Tillitis hello worlds
+# Tillitis - a first look
 
 The TKey is a handy open source security token created by the Mullvad spin-off [Tillitis AB](https://tillitis.se/).
 Both its software and hardware (schematics, PCB, and FPGA design) is open source, and available under copyleft licenses.
 The TKey was released in April of 2023 with a price tag of 880 SEK (incl. tax).
 
-The TKey is a small device drawing less than 100mA. It provides a few basic functions in firmware such as Ed25519 signing, key derivation, BLAKE2 hasing, and a good random number generator (TRNG).
+The TKey is a small device drawing less than 100mA. It provides a few basic functions (either in firmware or by the provided apps/libs) such as Ed25519 signing, key derivation, BLAKE2 hasing, and a good random number generator (TRNG).
 It also has a sensor for user confirmation.
 With these features it is possible to use the TKey for different functionality, such as authentication (signing, SSH login, passkey, ..), as a root of trust (sign/encrypt), or as a RNG.
 
@@ -30,7 +30,6 @@ It is quick to build an app and transfer it to the TKey.
 Run the following commands to try the app in this repo, or other example apps in <https://github.com/tillitis/tillitis-key1-apps>.
 
 ### Prerequisites
-
 
 #### General dependencies
 
