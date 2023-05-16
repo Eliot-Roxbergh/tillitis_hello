@@ -14,7 +14,7 @@ Second, by the same mechanism, we will use the TKey for authentication to PAM: r
 
 - build tkey-ssh-agent, and download Golang >= 1.19 if not already installed
 
-```
+```bash
 cd tillitis-key1-apps
 # ---> DL golang: https://go.dev/dl/
 #   tar xvf go*.tar.gz
@@ -24,14 +24,14 @@ make all
 
 - Install SSH
 
-```
+```bash
 sudo apt install -y ssh
 sudo systemctl disable ssh
 ```
 
 - Add the TKey internal pubkey to the servers you'd like to access over SSH (here your local machine)
 
-```
+```bash
 ./tkey-ssh-agent  --show-pubkey
 # --> add to ~/.ssh/authorized_keys
 #       example:
@@ -43,14 +43,14 @@ sudo systemctl start ssh
 
 - Create the ssh-agent socket for signing via TKey
 
-```
+```bash
 ./tkey-ssh-agent -a ~/.ssh/agent.sock &
 ```
 
 - Finally, connect to your local machine using SSH (via this tkey ssh-agent socket). \
 Run this command and press on TKey to perform sign and finish the login (as prompted by the tkey-ssh-agent program).
 
-```
+```bash
 # (add -vvv for verbose client, and if issues check "journalctl -u ssh.service")
 SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
 ```
@@ -63,7 +63,7 @@ Such as use it to authenticate to PAM.
 
 - Run TKey ssh agent and enable on boot, which creates a socket at login
 
-```
+```bash
 cd tillitis-key1-apps
 sudo make install
 cd ..
@@ -75,13 +75,13 @@ systemctl --user enable tkey-ssh-agent.service
 
 - In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file can be used to gain sudo privileges.
 
-```
+```bash
 sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
 ```
 
 - Install PAM module ssh-agent-auth
 
-```
+```bash
 sudo apt install libpam-ssh-agent-auth
 ```
 
@@ -91,7 +91,7 @@ On the other hand, if we were to set the module as 'required' the TKey would be 
 Similarly, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
 The new configuration is applied as soon as the file is saved, try with 'sudo'.
 
-```
+```bash
 #/etc/pam.d/sudo
 #note: uses ssh-agent socket at env var "$SSH_AUTH_SOCK"
 auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
@@ -99,22 +99,23 @@ auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
 
 - Contrary to Ubuntu manpage (??), you need to add the following to /etc/sudoers (The Ubuntu 22.04 system uses sudo 1.9.9, but still requires this step)
 
-```
+```bash
 #sudo visudo /etc/sudoers
 Defaults        env_keep += "SSH_AUTH_SOCK"
 ```
 
 - Try to authenticate using TKey
 
-```
+```bash
 SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock sudo echo SUCCESS!
 ```
 
-- Finally, let's permanently set $SSH_AUTH_SOCK. This variable must point to the active ssh-agent socket, created by the tkey-ssh-agent service. \
-One alternative is to set the variable in /etc/profile or ~/.profile, see [2].
-```
+- Finally, let's permanently set $SSH_AUTH_SOCK. This variable must point to the active ssh-agent socket, created by the tkey-ssh-agent service. One alternative is to set the variable in /etc/profile or ~/.profile, see [2].
+
+```bash
 echo "export SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock" >> ~/.profile
 source ~/.profile
+sudo -k #remove cached credentials
 sudo echo SUCCESS!
 ```
 
