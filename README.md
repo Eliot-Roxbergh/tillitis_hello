@@ -1,10 +1,10 @@
 # Tillitis - a first look
 
 The TKey is a handy open source security token created by the Mullvad spin-off [Tillitis AB](https://tillitis.se/).
-Both its software and hardware (schematics, PCB, and FPGA design) is open source, and available under copyleft licenses.
-The TKey was released in April of 2023 with a price tag of 880 SEK (incl. tax).
+Both its software and hardware (schematics, PCB, and FPGA design) is open source, and available under copyleft licenses [1].
+The TKey was released in April of 2023 with a price tag of 880 SEK (incl. tax) [2].
 
-The TKey is a small device drawing less than 100mA. It provides a few basic functions (either in firmware or by the provided apps/libs) such as Ed25519 signing, key derivation, BLAKE2 hasing, and a good random number generator (TRNG).
+The TKey is a small device drawing less than 100mA. It provides a few basic functions (either in firmware or by the provided apps/libs [3]) such as Ed25519 signing, key derivation, BLAKE2 hasing, and a good random number generator (TRNG).
 It also has a sensor for user confirmation.
 With these features it is possible to use the TKey for different functionality, such as authentication (signing, SSH login, passkey, ..), as a root of trust (sign/encrypt), or as a RNG.
 
@@ -18,10 +18,11 @@ I wrote a quick "hello world"-like example [coin_race.c](coin_race.c), build ins
 
 Moreover, an idea I got, is to use the ssh-agent app in TKey to create a 2FA step in PAM authentication.
 That is, to use the TKey for Linux login (for instance).
-I provide examples of this in here, [tkey_authentication](tkey_authentication.md), where I use the TKey to authenticate to `sudo`
+I provide examples of this in here, [tkey_authentication.md](tkey_authentication.md), where I use the TKey to authenticate to `sudo`
 
-[1] - <https://github.com/tillitis/tillitis-key1-apps>.
-
+[1] - <https://github.com/tillitis/tillitis-key1> \
+[2] - <https://shop.tillitis.se/products/tkey> \
+[3] - <https://github.com/tillitis/tillitis-key1-apps>, <https://github.com/tillitis/tkey-libs>
 
 ## Running an app on TKey
 
