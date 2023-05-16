@@ -6,8 +6,8 @@ Moreover, by using the PAM module "[ssh-agent-auth](https://manpages.ubuntu.com/
 For instance, replacing passwords or as a 2FA token in conjunction with a password (or other methods).
 
 In this document we will: \
-First, we setup the TKey to be used for SSH connections (signing is done on TKey with its key). \
-Second, we use the same mechanism to, from PAM, use the TKey for authentication: replacing the need to enter a password for the `sudo` command.
+First, setup the TKey for SSH connections (where signing is done on the TKey with its key). \
+Second, by the same mechanism, we will use the TKey for authentication to PAM: replacing the need to enter a password for the `sudo` command.
 
 ## 1. Use ssh TKey signing via ssh-agent
 
