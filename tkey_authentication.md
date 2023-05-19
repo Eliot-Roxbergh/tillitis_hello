@@ -83,7 +83,7 @@ systemctl --user enable tkey-ssh-agent.service
 #socket should now be here: `/run/user/$UID/tkey-ssh-agent/sock`
 ```
 
-- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file can be used to gain sudo privileges.
+- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file will be used to gain sudo privileges in this example.
 
 ```bash
 #note: to get the public key from the ssh-agent, type `ssh-add -L`
@@ -152,7 +152,7 @@ The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_
 ¹ SSH_AUTH_SOCK needs to be set, which can be done in several ways depending on your system or who calls it. In addition to simple export in e.g. _~/.profile_, this can be done in a PAM configuration file [1] such as in _/etc/security/pam_env.conf_ or _/etc/environment_, or by loading your own with _pam_env_ [2]. It can also be done with systemd's _environment.d_ [3]. For an overview see [4].
 
 [1] - <https://linux.die.net/man/8/pam_env> \
-note: pam has a special syntax for env config, example add the following to .conf file: \
+note: pam has a special syntax for env config, example add the following to environment .conf file (e.g. /etc/security/pam_env.conf): \
 `SSH_AUTH_SOCK DEFAULT=/home/user/.ssh/agent.sock`\
 [2] - Optionally, create your own config file and add to /etc/pam.d/sudo: \
 `session required pam_env.so readenv=1 envfile=X.conf user_readenv=0` \
