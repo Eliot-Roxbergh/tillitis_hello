@@ -9,8 +9,17 @@ In this document we will: \
 First, setup the TKey for SSH connections (where signing is done on the TKey with its key). \
 Second, by the same mechanism, we will use the TKey for authentication to PAM: replacing the need to enter a password for the `sudo` command.
 
-## 1. Use ssh TKey signing via ssh-agent
+## The TKey ssh-agent 
 
+The tkey-ssh-agent runs in the background and once called upon via its socket, it transfers the application to the TKey and starts the authentication.
+The TKey then generates a ed25519 key-pair and performs cryptographic signatures.
+
+The TKey generates a key-pair based on its internal identifier (i.e. Unique Device Secret, UDS), the hash of the TKey app, and optional user input (i.e. User Supplied Secret, USS) [1].
+For the tkey-ssh-agent the USS is optional, but if used, it functions as a passphrase; otherwise the private keys won't match.
+
+[1] - <https://tillitis.se/2023/03/31/on-tkey-key-generation/>
+
+## 1. SSH: use TKey signing via ssh-agent
 
 - build tkey-ssh-agent, and download Golang >= 1.19 if not already installed
 
@@ -32,10 +41,12 @@ sudo systemctl disable ssh
 - Add the TKey internal pubkey to the servers you'd like to access over SSH (here your local machine)
 
 ```bash
-./tkey-ssh-agent  --show-pubkey
-# --> add to ~/.ssh/authorized_keys
-#       example:
-#        echo "ssh-ed25519 AAAA5Ns36SKds24ovMDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4Asdv/U My-Tillitis-TKey" >>  ~/.ssh/authorized_keys
+# add to ~/.ssh/authorized_keys
+#   example:
+#   echo "ssh-ed25519 AAAA5Ns36SKds24ovMDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4Asdv/U My-Tillitis-TKey" >>  ~/.ssh/authorized_keys
+# 
+# It's also possible to add the --uss option to require a passphrase for the key pair
+./tkey-ssh-agent  --show-pubkey 1>>  ~/.ssh/authorized_keys
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 sudo systemctl start ssh
@@ -55,8 +66,7 @@ Run this command and press on TKey to perform sign and finish the login (as prom
 SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
 ```
 
-
-## 2. Use for authentication
+## 2. sudo: use TKey for authentication
 
 Once the ssh-agent is working, we can use it for other things than just regular ssh.
 Such as use it to authenticate to PAM.
@@ -76,6 +86,7 @@ systemctl --user enable tkey-ssh-agent.service
 - In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file can be used to gain sudo privileges.
 
 ```bash
+#note: to get the public key from the ssh-agent, type `ssh-add -L`
 sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
 ```
 
