@@ -9,7 +9,7 @@ It also has a sensor for user confirmation.
 With these features, the TKey can be used for various functionalities, such as authentication (signing, SSH login, passkey, etc.), serving as a root of trust (sign/encrypt), or functioning as a RNG.
 
 The firmware is locked down and user applications need to be loaded onto the TKey each boot, as it keeps no user-state between power cycles.
-However, it has an internal unique device identifier which can be used to derive keys persistent across boots, in addition to verify that the device and application have not been modified since last boot.
+However, it has an internal Unique Device Secret (UDS) which can be used to derive keys persistent across boots, in addition to verify that the device and application have not been modified since last boot.
 See <https://dev.tillitis.se> for more info.
 
 
