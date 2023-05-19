@@ -85,32 +85,46 @@ sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
 sudo apt install libpam-ssh-agent-auth
 ```
 
-- Add the alternative authentication method (ssh-agent-auth) for sudo by adding the PAM module as a step in its PAM config (i.e. /etc/pam.d/sudo)[1]. \
-By setting the module as 'sufficient' the user can either use the TKey (and remaining steps are ignored) or the current authentication steps (such as password).
-On the other hand, if we were to set the module as 'required' the TKey would be used in addition to current authentication, i.e. 2FA (note: be careful not to lock yourself out of the system). \
-Similarly, we can use this authentication for any service using PAM, not only sudo; see other configs in /etc/pam.d/. \
+- Add the alternative authentication method (ssh-agent-auth) for sudo by adding the PAM module as a step in its PAM config (i.e. /etc/pam.d/sudo).
+The tkey can then be used in conjunction to, or instead of a password, by adding a new line before the password authentication step: `pam_unix.so` (common-auth). \
+To use the tkey in conjunction with a password we set the module to be "required", for instance \
+`auth required pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys`.
+On the other hand, as shown in the snippet below, we can instead use the more complicated PAM syntax (e.g. `[success=2 default=ignore]`),
+to on success skip the two next modules ignoring the password requirement, and on failure ignore the result of this module and continue with password authentication instead. \
+We can use this authentication for any service using PAM, not only sudo; see other configs in `/etc/pam.d/` - as long as `$SSH_AUTH_SOCK` is set.
 The new configuration is applied as soon as the file is saved, try with 'sudo'.
 
 ```bash
 #/etc/pam.d/sudo
-#note: uses ssh-agent socket at env var "$SSH_AUTH_SOCK"
-auth sufficient pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
+# ...
+
+#add this line before pam_unix.so and change success=2 to the number of modules to skip on success
+#note: "$SSH_AUTH_SOCK" must always point to the socket file
+auth [success=2 default=ignore] pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
+
+# check password
+auth	[success=1 default=ignore]	pam_unix.so nullok
+# default deny
+auth	requisite			pam_deny.so
+
+# -> (success either tkey or password authentication succeeded)
+# ...
 ```
 
-- Contrary to Ubuntu manpage (??), you need to add the following to /etc/sudoers (The Ubuntu 22.04 system uses sudo 1.9.9, but still requires this step)
+- Contrary to Ubuntu manpage (?), you need to add the following to `/etc/sudoers` (The Ubuntu 22.04 system uses sudo v1.9.9 and still requires this step)
 
 ```bash
 #sudo visudo /etc/sudoers
 Defaults        env_keep += "SSH_AUTH_SOCK"
 ```
 
-- Try to authenticate using TKey
+- Try to authenticate using the TKey
 
 ```bash
 SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock sudo echo SUCCESS!
 ```
 
-- Finally, let's permanently set $SSH_AUTH_SOCK. This variable must point to the active ssh-agent socket, created by the tkey-ssh-agent service. One alternative is to set the variable in /etc/profile or ~/.profile, see [2].
+- Finally, let's permanently set `$SSH_AUTH_SOCK`. This variable must point to the active ssh-agent socket, created by the tkey-ssh-agent service. One alternative is to set the variable in /etc/profile or ~/.profile.¹
 
 ```bash
 echo "export SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock" >> ~/.profile
@@ -119,20 +133,17 @@ sudo -k #remove cached credentials
 sudo echo SUCCESS!
 ```
 
-PAM config: it should be possible to use pam-ssh-agent-auth for any service you'd like, such as /etc/pam.d/sudo or /etc/pam.d/login. \
-I can't say if it's a good/bad idea however.
+PAM config: it should be possible to use pam-ssh-agent-auth for any service you'd like, such as /etc/pam.d/sudo or /etc/pam.d/login.
 
 **If issues arise, check log: e.g. `sudo journalctl -f` or `/var/log/auth.log` and the status of tkey with `systemctl status tkey-ssh-agent`.**
 The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the SSH_AUTH_SOCK not set or inherited properly.
 
-[1] - I think that you'd should either put the module line above the "@include common-auth" line in /etc/pam.d/login, \
-or create a profile for pam-auth-update(8) to apply globally to all PAM supported services. \
-You may also want to limit this authentication method to certain services or certain users. \
-[2] - SSH_AUTH_SOCK needs to be set, which can be done in multiple ways depending on your system or who calls it. In addition to simple export in e.g. .profile, this can be done in PAM in /etc/security/pam_env.conf or /etc/environment, or by loading a file with pam_env [2a], ([2b]). It can also be done with systemd's environment.d [2c]. For an overview see [2d]. \
-[2a] - https://linux.die.net/man/8/pam_env \
+¹ SSH_AUTH_SOCK needs to be set, which can be done in several ways depending on your system or who calls it. In addition to simple export in e.g. _~/.profile_, this can be done in a PAM configuration file [1] such as in _/etc/security/pam_env.conf_ or _/etc/environment_, or by loading your own with _pam_env_ [2]. It can also be done with systemd's _environment.d_ [3]. For an overview see [4].
+
+[1] - <https://linux.die.net/man/8/pam_env> \
 note: pam has a special syntax for env config, example add the following to .conf file: \
 `SSH_AUTH_SOCK DEFAULT=/home/user/.ssh/agent.sock`\
-[2b] - Optionally, create your own config file and add to /etc/pam.d/sudo: \
+[2] - Optionally, create your own config file and add to /etc/pam.d/sudo: \
 `session required pam_env.so readenv=1 envfile=X.conf user_readenv=0` \
-[2c] - https://www.freedesktop.org/software/systemd/man/environment.d.html \
-[2d] - https://wiki.archlinux.org/title/Environment_variables
+[3] - <https://www.freedesktop.org/software/systemd/man/environment.d.html> \
+[4] - <https://wiki.archlinux.org/title/Environment_variables>
