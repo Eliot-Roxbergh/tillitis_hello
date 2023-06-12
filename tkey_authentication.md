@@ -1,27 +1,33 @@
 # Use TKey for PAM authentication (with tkey ssh-agent)
 
-There is an ssh-agent app available in the [tillitis-key1-apps](https://github.com/tillitis/tillitis-key1-apps) repo.
-This enables us to use the TKey for key-based authentication over ssh.
-Moreover, by using the PAM module "[pam_ssh_agent_auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html)" it is possible to login to the Linux system using the TKey ssh-agent.
-For instance, replacing passwords or as a 2FA token in conjunction with a password (or other methods).
+The [tkey-ssh-agent](https://github.com/tillitis/tillitis-key1-apps/tree/main/cmd/tkey-ssh-agent) is an application (which runs simultaneously on the TKey and the computer) that enables us to use the TKey for key-based authentication, instead of directly interacting with a private key on the local computer.
+That is, the TKey is taking on a role similar to that of an HSM or TPM, although technically, the private key(s) is re-derived on each boot-up as it has no lasting user state.¹
 
-In this document we will: \
+With an ssh-agent, we can however do more than just SSH, for instance, there is a PAM module ([pam_ssh_agent_auth](https://manpages.ubuntu.com/manpages/bionic/man8/pam_ssh_agent_auth.8.html))
+that allows the use of an ssh-agent for authentication.
+Let's see if we can use this to authenticate to our Linux device using the TKey.
+We could then use the TKey in conjunction with a password (2FA), or for convenience, it could provide an alternative to passwords for some applications.
+
+Therefore, in this document we will: \
 First, setup the TKey for SSH connections (where signing is done on the TKey with its key). \
 Second, by the same mechanism, we will use the TKey for authentication to PAM: replacing the need to enter a password for the `sudo` command.
 
-## The TKey ssh-agent 
+¹ The keys are generated based on the internal Unique Device Secret, a User Supplied Secret, and the application hash; and by using the application hash in key generation, it is ensured that the application uploaded has not been tampered with since last time.
 
-The tkey-ssh-agent runs in the background and once called upon via its socket, it transfers the application to the TKey and starts the authentication.
-The TKey then generates a ed25519 key-pair and performs cryptographic signatures.
 
-The TKey generates a key-pair based on its internal identifier (i.e. Unique Device Secret, UDS), the hash of the TKey app, and optional user input (i.e. User Supplied Secret, USS) [1].
+## The TKey ssh-agent
+
+The tkey-ssh-agent runs in the background, and once called upon via its socket, it transfers the application to the TKey and starts the authentication procedure.
+The TKey then generates an ed25519 key-pair and performs cryptographic signing as necessary.
+
+Specifically, the TKey generates a key-pair based on its internal identifier (i.e. Unique Device Secret, UDS), the hash of the TKey app, and optional user input (i.e. User Supplied Secret, USS) [1].
 For the tkey-ssh-agent the USS is optional, but if used, it functions as a passphrase; otherwise the private keys won't match.
 
 [1] - <https://tillitis.se/2023/03/31/on-tkey-key-generation/>
 
-## 1. SSH: use TKey signing via ssh-agent
+### i) SSH: use TKey signing via ssh-agent
 
-- build tkey-ssh-agent, and download Golang >= 1.19 if not already installed
+- Build the tkey-ssh-agent, and download Golang >= 1.19 if not already installed
 
 ```bash
 cd tillitis-key1-apps
@@ -38,43 +44,43 @@ sudo apt install -y ssh
 sudo systemctl disable ssh
 ```
 
-- Add the TKey internal pubkey to the servers you'd like to access over SSH (here your local machine)
+- Add the TKey internal public key to the servers you'd like to access over SSH (here your local machine)
 
 ```bash
-# add to ~/.ssh/authorized_keys
-#   example:
-#   echo "ssh-ed25519 AAAA5Ns36SKds24ovMDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4Asdv/U My-Tillitis-TKey" >>  ~/.ssh/authorized_keys
-# 
-# It's also possible to add the --uss option to require a passphrase for the key pair
+# add pubkey to ~/.ssh/authorized_keys
+#   example line: ssh-ed25519 AAAA5Ns36SKds24ovMDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4Asdv/U My-Tillitis-TKey
 ./tkey-ssh-agent  --show-pubkey 1>>  ~/.ssh/authorized_keys
+
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 sudo systemctl start ssh
 ```
 
-- Create the ssh-agent socket for signing via TKey
+- Start the SSH agent. When a request is made to the agent socket, the application will be transferred to the TKey and signing can take place
 
 ```bash
 ./tkey-ssh-agent -a ~/.ssh/agent.sock &
 ```
 
-- Finally, connect to your local machine using SSH (via this tkey ssh-agent socket). \
-Run this command and press on TKey to perform sign and finish the login (as prompted by the tkey-ssh-agent program).
+- Finally, connect to your local machine using SSH (via this tkey-ssh-agent socket). \
+Run the following command and press on the TKey to perform signing and finish the login (as prompted by the tkey-ssh-agent program).
 
 ```bash
 # (add -vvv for verbose client, and if issues check "journalctl -u ssh.service")
-SSH_AUTH_SOCK=/home/$USER/.ssh/agent.sock ssh -F /dev/null $USER@localhost
+SSH_AUTH_SOCK="$HOME/.ssh/agent.sock" ssh -F /dev/null $USER@localhost
 ```
 
-## 2. sudo: use TKey for authentication
 
-Once the ssh-agent is working, we can use it for other things than just regular ssh.
-Such as use it to authenticate to PAM.
+### ii) sudo: use TKey for authentication
 
-- Run TKey ssh agent and enable on boot, which creates a socket at login
+Once the ssh-agent is up and running, we can use it for more than just regular ssh, such as authenticating to PAM.
+It is thereby possible to use the TKey for different steps in the Linux authentication, here we will use the TKey as an alternative to passwords for running the 'sudo' command.
+
+- Enable the tkey-ssh-agent to automatically start for the current user, creating a socket at login
 
 ```bash
 cd tillitis-key1-apps
+make all
 sudo make install
 cd ..
 
@@ -83,14 +89,14 @@ systemctl --user enable tkey-ssh-agent.service
 #socket should now be here: `/run/user/$UID/tkey-ssh-agent/sock`
 ```
 
-- In this example, we use the authorized keys path `/etc/ssh/sudo_authorized_keys`. Note, any keys listed in this file will be used to gain sudo privileges in this example.
+- We set the authorized keys path to `/etc/ssh/sudo_authorized_keys`, keeping it separate from ssh's trusted keys. Note, any keys listed in this file will be used to gain sudo privileges in this example.
 
 ```bash
-#note: to get the public key from the ssh-agent, type `ssh-add -L`
+#(if not already copied, you may also use `ssh-add -L` to get the public key from the ssh-agent)
 sudo cp ~/.ssh/authorized_keys /etc/ssh/sudo_authorized_keys
 ```
 
-- Install PAM module ssh-agent-auth
+- Install the PAM module `ssh-agent-auth`
 
 ```bash
 sudo apt install libpam-ssh-agent-auth
@@ -102,34 +108,37 @@ To use the tkey in conjunction with a password we set the module to be "required
 `auth required pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys`.
 On the other hand, as shown in the snippet below, we can instead use the more complicated PAM syntax (e.g. `[success=2 default=ignore]`),
 to on success skip the two next modules ignoring the password requirement, and on failure ignore the result of this module and continue with password authentication instead. \
-We can use this authentication for any service using PAM, not only sudo; see other configs in `/etc/pam.d/` - as long as `$SSH_AUTH_SOCK` is set.
-The new configuration is applied as soon as the file is saved, try with 'sudo'.
+It should be possible to use this authentication for any service using PAM, not only sudo - see other configs in `/etc/pam.d/` - as long as `$SSH_AUTH_SOCK` is set.
+The new configuration is applied as soon as the file is saved, and in this case, the new authentication step will be checked once 'sudo' is run.
 
 ```bash
 #/etc/pam.d/sudo
+
 # ...
 
 #add this line before pam_unix.so and change success=2 to the number of modules to skip on success
 #note: "$SSH_AUTH_SOCK" must always point to the socket file
 auth [success=2 default=ignore] pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys debug
 
+# (in this example we want to skip these 2 modules on success, replacing password authentication with TKey)
 # check password
 auth	[success=1 default=ignore]	pam_unix.so nullok
 # default deny
 auth	requisite			pam_deny.so
 
-# -> (success either tkey or password authentication succeeded)
+# -> (success: either tkey or password authentication succeeded)
+
 # ...
+
 ```
 
-- Contrary to Ubuntu manpage (?), you need to add the following to `/etc/sudoers` (The Ubuntu 22.04 system uses sudo v1.9.9 and still requires this step)
+- Contrary to Ubuntu manpage, you need to add the following to /etc/sudoers, by running `sudo visudo /etc/sudoers`. This is necessary as to properly inherit SSH_AUTH_SOCK. (The Ubuntu 22.04 system uses sudo v1.9.9 and still requires this step)
 
 ```bash
-#sudo visudo /etc/sudoers
 Defaults        env_keep += "SSH_AUTH_SOCK"
 ```
 
-- Try to authenticate using the TKey
+- We are now ready to try to authenticate using the TKey
 
 ```bash
 SSH_AUTH_SOCK=/run/user/$UID/tkey-ssh-agent/sock sudo echo SUCCESS!
@@ -144,17 +153,16 @@ sudo -k #remove cached credentials
 sudo echo SUCCESS!
 ```
 
-PAM config: it should be possible to use pam-ssh-agent-auth for any service you'd like, such as /etc/pam.d/sudo or /etc/pam.d/login.
-
 **If issues arise, check log: e.g. `sudo journalctl -f` or `/var/log/auth.log` and the status of tkey with `systemctl status tkey-ssh-agent`.**
-The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the SSH_AUTH_SOCK not set or inherited properly.
+The most common error is _"pam_ssh_agent_auth: No ssh-agent could be contacted"_, usually regarding the environment variable SSH_AUTH_SOCK not set or inherited properly.
+Make sure that it's set and that the socket indeed exists, for the sudo command as shown above the configuration option 'env_keep' is also required.
 
-¹ SSH_AUTH_SOCK needs to be set, which can be done in several ways depending on your system or who calls it. In addition to simple export in e.g. _~/.profile_, this can be done in a PAM configuration file [1] such as in _/etc/security/pam_env.conf_ or _/etc/environment_, or by loading your own with _pam_env_ [2]. It can also be done with systemd's _environment.d_ [3]. For an overview see [4].
+¹ The environment variable SSH_AUTH_SOCK needs to be set, which can be done in several ways depending on your system or who calls it. In addition to regular export in e.g. _~/.profile_, this can also be done in a PAM configuration file [1] such as in _/etc/security/pam_env.conf_ or _/etc/environment_, or by loading your own with _pam_env_ [2]. It is also possible to use systemd's _environment.d_ [3]. For an overview of environment variables [see for instance [4]](https://wiki.archlinux.org/title/Environment_variables).
 
-[1] - <https://linux.die.net/man/8/pam_env> \
-note: pam has a special syntax for env config, example add the following to environment .conf file (e.g. /etc/security/pam_env.conf): \
+[1] - https://linux.die.net/man/8/pam_env \
+note: pam has a special syntax for env config, for example add the following line to the environment .conf file (e.g. /etc/security/pam_env.conf): \
 `SSH_AUTH_SOCK DEFAULT=/home/user/.ssh/agent.sock`\
-[2] - Optionally, create your own config file and add to /etc/pam.d/sudo: \
-`session required pam_env.so readenv=1 envfile=X.conf user_readenv=0` \
-[3] - <https://www.freedesktop.org/software/systemd/man/environment.d.html> \
-[4] - <https://wiki.archlinux.org/title/Environment_variables>
+[2] - Optionally, you can create your own config file instead and point to it from /etc/pam.d/sudo: \
+`session required pam_env.so readenv=1 envfile=my-config-file.conf user_readenv=0` \
+[3] - https://www.freedesktop.org/software/systemd/man/environment.d.html \
+[4] - https://wiki.archlinux.org/title/Environment_variables
